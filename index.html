@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Get Product Details</title>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 380px;
+      padding: 30px 25px;
+      background: white;
+      border-radius: 16px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-size: 24px;
+    }
+
+    p {
+      margin-bottom: 25px;
+      color: #666;
+      font-size: 15px;
+    }
+
+    #googleBtn {
+      display: flex;
+      justify-content: center;
+      min-height: 44px;
+    }
+
+    #message {
+      margin-top: 20px;
+      font-size: 15px;
+      font-weight: bold;
+    }
+
+    .success {
+      color: #188038;
+    }
+
+    .error {
+      color: #d93025;
+    }
+
+    .pending {
+      color: #666;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <h2>Get Product Details</h2>
+
+    <p>Continue with Google to receive product information.</p>
+
+    <div id="googleBtn"></div>
+
+    <div id="message"></div>
+
+  </div>
+
+
+  <script>
+    // ====== CONFIG ======
+    const CLIENT_ID = "453286792845-elsnnpo1vhp2sb0uv2hb99j1nv4luts7.apps.googleusercontent.com";
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzvEuu-gwV461j7qZd1ZLzyvYidvQXjQdjbZmcv-qlFV1yLq8d2htm3TIMFb8Dn1AZ8/exec";
+
+
+    window.onload = function () {
+      // The Google script loads async, so wait until it is ready
+      const timer = setInterval(function () {
+        if (window.google && google.accounts && google.accounts.id) {
+          clearInterval(timer);
+
+          google.accounts.id.initialize({
+            client_id: CLIENT_ID,
+            callback: handleCredential
+          });
+
+          google.accounts.id.renderButton(
+            document.getElementById("googleBtn"),
+            {
+              theme: "outline",
+              size: "large",
+              text: "continue_with",
+              shape: "rectangular",
+              width: 300
+            }
+          );
+        }
+      }, 100);
+    };
+
+
+    function handleCredential(response) {
+      const message = document.getElementById("message");
+      const btn = document.getElementById("googleBtn");
+
+      message.innerText = "Submitting...";
+      message.className = "pending";
+      btn.style.display = "none";
+
+      // text/plain avoids a CORS preflight, which Apps Script can't answer
+      fetch(WEB_APP_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ credential: response.credential })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+
+          if (data.status === "success") {
+            message.innerText = "✓ Thank you!";
+            message.className = "success";
+          }
+          else if (data.status === "already_exists") {
+            message.innerText = "✓ You're already registered!";
+            message.className = "success";
+          }
+          else {
+            showError(data.message || "Something went wrong. Please try again.");
+          }
+
+        })
+        .catch(function () {
+          showError("Something went wrong. Please try again.");
+        });
+    }
+
+
+    function showError(text) {
+      const message = document.getElementById("message");
+      message.innerText = text;
+      message.className = "error";
+      document.getElementById("googleBtn").style.display = "flex";
+    }
+  </script>
+
+</body>
+
+</html>
